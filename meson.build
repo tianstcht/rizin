@@ -675,6 +675,10 @@ if cli_enabled
   )
 endif
 
+#TODO: if bindings_enabled
+subdir('bindings')
+#endif
+
 summary({
   'prefix': rizin_prefix,
   'libdir': rizin_libdir,
