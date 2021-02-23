@@ -4533,7 +4533,7 @@ RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_float_cp(RzBinJavaObj *bin, ut8 *buff
 		obj->metas->type_info = (void *)&RZ_BIN_JAVA_CP_METAS[tag];
 		obj->name = rz_str_dup(NULL, (const char *)RZ_BIN_JAVA_CP_METAS[tag].name);
 		memset(&obj->info.cp_float.bytes, 0, sizeof(obj->info.cp_float.bytes));
-		memcpy(&obj->info.cp_float.bytes.raw, buffer, 4);
+		memcpy(&obj->info.cp_float.bytes.raw, buffer + 1, 4);
 	}
 	return (RzBinJavaCPTypeObj *)obj;
 }
