@@ -6332,7 +6332,7 @@ RZ_API RzBinJavaCPTypeObj *rz_bin_java_find_cp_ref_info(RzBinJavaObj *bin, ut16 
 	return res;
 }
 
-RZ_API char *rz_bin_java_resolve(RzBinJavaObj *bin_obj, int idx, ut8 space_bn_name_type) {
+RZ_API char *rz_bin_java_resolve(RzBinJavaObj *obj, int idx, ut8 space_bn_name_type) {
 	// TODO XXX FIXME add a size parameter to the str when it is passed in
 	RzBinJavaCPTypeObj *item = NULL, *item2 = NULL;
 	char *class_str = NULL,
@@ -6340,36 +6340,34 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *bin_obj, int idx, ut8 space_bn_na
 	     *desc_str = NULL,
 	     *string_str = NULL,
 	     *empty = "",
-	     *cp_name = NULL,
 	     *str = NULL;
-	if (bin_obj && bin_obj->cp_count < 1) {
-		// rz_bin_java_new_bin(bin_obj);
+	ut8 tag;
+	if (obj && obj->cp_count < 1) {
 		return NULL;
 	}
-	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
+	item = rz_bin_java_get_item_from_bin_cp_list(obj, idx);
 	if (item) {
-		cp_name = ((RzBinJavaCPTypeMetas *)item->metas->type_info)->name;
-		// eprintf("java_resolve Resolved: (%d) %s\n", idx, cp_name);
+		tag = ((RzBinJavaCPTypeMetas *)item->metas->type_info)->tag;
 	} else {
-		int size = snprintf(NULL, 0, "(%d) INVALID CP_OBJ", idx);
+		int size = snprintf(NULL, 0, "invalid_cp_%d", idx);
 		str = malloc(size + 1);
 		if (str) {
-			snprintf(str, size + 1, "(%d) INVALID CP_OBJ", idx);
+			snprintf(str, size + 1, "invalid_cp_%d", idx);
 		}
 		return str;
 	}
-	if (strcmp(cp_name, "Class") == 0) {
-		item2 = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
-		// str = rz_bin_java_get_name_from_bin_cp_list (bin_obj, idx-1);
-		class_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
+	if (tag == RZ_BIN_JAVA_CP_CLASS) {
+		item2 = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(obj, idx);
+		// str = rz_bin_java_get_name_from_bin_cp_list (obj, idx-1);
+		class_str = rz_bin_java_get_item_name_from_bin_cp_list(obj, item);
 		if (!class_str) {
 			class_str = empty;
 		}
-		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item2);
+		name_str = rz_bin_java_get_item_name_from_bin_cp_list(obj, item2);
 		if (!name_str) {
 			name_str = empty;
 		}
-		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(bin_obj, item2);
+		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(obj, item2);
 		if (!desc_str) {
 			desc_str = empty;
 		}
@@ -6384,21 +6382,21 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *bin_obj, int idx, ut8 space_bn_na
 		if (desc_str != empty) {
 			free(desc_str);
 		}
-	} else if (!strcmp(cp_name, "MethodRef") ||
-		!strcmp(cp_name, "FieldRef") ||
-		!strcmp(cp_name, "InterfaceMethodRef")) {
+	} else if (tag == RZ_BIN_JAVA_CP_FIELDREF ||
+		tag == RZ_BIN_JAVA_CP_METHODREF ||
+		tag == RZ_BIN_JAVA_CP_INTERFACEMETHOD_REF) {
 		/*
 		*  The MethodRef, FieldRef, and InterfaceMethodRef structures
 		*/
-		class_str = rz_bin_java_get_name_from_bin_cp_list(bin_obj, item->info.cp_method.class_idx);
+		class_str = rz_bin_java_get_name_from_bin_cp_list(obj, item->info.cp_method.class_idx);
 		if (!class_str) {
 			class_str = empty;
 		}
-		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
+		name_str = rz_bin_java_get_item_name_from_bin_cp_list(obj, item);
 		if (!name_str) {
 			name_str = empty;
 		}
-		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(bin_obj, item);
+		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(obj, item);
 		if (!desc_str) {
 			desc_str = empty;
 		}
@@ -6413,8 +6411,8 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *bin_obj, int idx, ut8 space_bn_na
 		if (desc_str != empty) {
 			free(desc_str);
 		}
-	} else if (!strcmp(cp_name, "String")) {
-		string_str = rz_bin_java_get_utf8_from_bin_cp_list(bin_obj, item->info.cp_string.string_idx);
+	} else if (tag == RZ_BIN_JAVA_CP_STRING) {
+		string_str = rz_bin_java_get_utf8_from_bin_cp_list(obj, item->info.cp_string.string_idx);
 		str = NULL;
 		// eprintf("java_resolve String got: (%d) %s\n", item->info.cp_string.string_idx, string_str);
 		if (!string_str) {
@@ -6426,7 +6424,7 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *bin_obj, int idx, ut8 space_bn_na
 			free(string_str);
 		}
 
-	} else if (!strcmp(cp_name, "Utf8")) {
+	} else if (tag == RZ_BIN_JAVA_CP_UTF8) {
 		char *tmp_str = sanitize_string((const char *)item->info.cp_utf8.bytes, item->info.cp_utf8.length);
 		ut32 tmp_str_len = tmp_str ? strlen(tmp_str) + 4 : 0;
 		if (tmp_str) {
@@ -6434,24 +6432,26 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *bin_obj, int idx, ut8 space_bn_na
 			snprintf(str, tmp_str_len + 4, "\"%s\"", tmp_str);
 		}
 		free(tmp_str);
-	} else if (!strcmp(cp_name, "Long")) {
+	} else if (tag == RZ_BIN_JAVA_CP_LONG) {
 		str = rz_str_newf("0x%" PFMT64x, rz_read_at_be64(item->value, 0));
-	} else if (!strcmp(cp_name, "Double")) {
+	} else if (tag == RZ_BIN_JAVA_CP_DOUBLE) {
 		double dbl = raw_to_double(item->info.cp_double.bytes.raw, 0);
 		str = rz_str_newf("%lf", dbl);
-		rz_str_replace_char_once(str, '.', ','); // hack to prevent display issue with dots.
-	} else if (!strcmp(cp_name, "Integer")) {
+		// hack to prevent display issue with dots.
+		rz_str_replace_char_once(str, '.', ',');
+	} else if (tag == RZ_BIN_JAVA_CP_INTEGER) {
 		str = rz_str_newf("0x%08x", rz_read_at_be32(item->info.cp_integer.bytes.raw, 0));
-	} else if (!strcmp(cp_name, "Float")) {
+	} else if (tag == RZ_BIN_JAVA_CP_FLOAT) {
 		float flt = raw_to_float(item->info.cp_float.bytes.raw, 0);
 		str = rz_str_newf("%f", flt);
-		rz_str_replace_char_once(str, '.', ','); // hack to prevent display issue with dots.
-	} else if (!strcmp(cp_name, "NameAndType")) {
-		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
+		// hack to prevent display issue with dots.
+		rz_str_replace_char_once(str, '.', ',');
+	} else if (tag == RZ_BIN_JAVA_CP_NAMEANDTYPE) {
+		name_str = rz_bin_java_get_item_name_from_bin_cp_list(obj, item);
 		if (!name_str) {
 			name_str = empty;
 		}
-		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(bin_obj, item);
+		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(obj, item);
 		if (!desc_str) {
 			desc_str = empty;
 		}
