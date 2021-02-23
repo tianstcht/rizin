@@ -6515,10 +6515,11 @@ RZ_API RzList *rz_bin_java_find_cp_const_by_val_long(RzBinJavaObj *bin_obj, cons
 	ut32 *v = NULL;
 	RzListIter *iter;
 	RzBinJavaCPTypeObj *cp_obj;
-	eprintf("Looking for 0x%08x\n", rz_read_at_be32(bytes, 0));
+	ut32 to_find = rz_read_be32(bytes);
+	eprintf("Looking for 0x%08x\n", to_find);
 	rz_list_foreach (bin_obj->cp_list, iter, cp_obj) {
 		if (cp_obj->tag == RZ_BIN_JAVA_CP_LONG) {
-			if (len == 8 && rz_read_at_be64(cp_obj->info.cp_long.bytes.raw, 0) == rz_read_at_be64(bytes, 0)) {
+			if (len == 8 && rz_read_at_be64(cp_obj->info.cp_long.bytes.raw, 0) == to_find) {
 				// TODO: we can safely store a ut32 inside the list without having to allocate it
 				v = malloc(sizeof(ut32));
 				if (!v) {
@@ -6538,10 +6539,11 @@ RZ_API RzList *rz_bin_java_find_cp_const_by_val_double(RzBinJavaObj *bin_obj, co
 	ut32 *v = NULL;
 	RzListIter *iter;
 	RzBinJavaCPTypeObj *cp_obj;
-	eprintf("Looking for %f\n", raw_to_double(bytes, 0));
+	double to_find = raw_to_double(bytes, 0);
+	eprintf("Looking for %lf\n", to_find);
 	rz_list_foreach (bin_obj->cp_list, iter, cp_obj) {
 		if (cp_obj->tag == RZ_BIN_JAVA_CP_DOUBLE) {
-			if (len == 8 && raw_to_double(cp_obj->info.cp_long.bytes.raw, 0) == raw_to_double(bytes, 0)) {
+			if (len == 8 && raw_to_double(cp_obj->info.cp_long.bytes.raw, 0) == to_find) {
 				v = malloc(sizeof(ut32));
 				if (!v) {
 					rz_list_free(res);
@@ -6560,10 +6562,11 @@ RZ_API RzList *rz_bin_java_find_cp_const_by_val_float(RzBinJavaObj *bin_obj, con
 	ut32 *v = NULL;
 	RzListIter *iter;
 	RzBinJavaCPTypeObj *cp_obj;
-	eprintf("Looking for %f\n", raw_to_float(bytes, 0));
+	float to_find = raw_to_float(bytes, 0);
+	eprintf("Looking for %f\n", to_find);
 	rz_list_foreach (bin_obj->cp_list, iter, cp_obj) {
 		if (cp_obj->tag == RZ_BIN_JAVA_CP_FLOAT) {
-			if (len == 4 && raw_to_float(cp_obj->info.cp_long.bytes.raw, 0) == raw_to_float(bytes, 0)) {
+			if (len == 4 && raw_to_float(cp_obj->info.cp_long.bytes.raw, 0) == to_find) {
 				v = malloc(sizeof(ut32));
 				if (!v) {
 					rz_list_free(res);
@@ -6596,7 +6599,6 @@ RZ_API RzList *rz_bin_java_find_cp_const_by_val(RzBinJavaObj *bin_obj, const ut8
 	}
 }
 
-// #if 0
 // Attempted to clean up these functions and remove them since they are "unused" but without
 // them there are some compile time warnings, because other projects actually depend on these
 // for some form of information.
