@@ -57,8 +57,6 @@ static RzCmdStatus rz_cmd_java_print_method_num_name(RzBinJavaObj *obj);
 
 static RzBinJavaObj *rz_cmd_java_get_bin_obj(RzAnalysis *analysis);
 static RzList *rz_cmd_java_get_bin_obj_list(RzAnalysis *analysis);
-static ut64 rz_cmd_java_get_input_num_value(RzCore *core, const char *input_value);
-static bool rz_cmd_java_is_valid_input_num_value(RzCore *core, const char *input_value);
 
 static RzCmdStatus rz_cmd_java_handle_help(RzCore *core, int argc, const char **argv);
 static RzCmdStatus rz_cmd_java_handle_set_flags(RzCore *core, int argc, const char **argv);
@@ -354,16 +352,16 @@ static RzList *cpfind_float(RzBinJavaObj *obj, const char *cmd) {
 }
 
 static RzList *cpfind_long(RzCore *core, RzBinJavaObj *obj, const char *cmd) {
-	ut64 value = rz_cmd_java_get_input_num_value(core, cmd);
-	if (!rz_cmd_java_is_valid_input_num_value(core, cmd)) {
+	ut64 value = rz_num_math(core->num, cmd);
+	if (!rz_num_is_valid_input(core->num, cmd)) {
 		return rz_list_new();
 	}
 	return rz_bin_java_find_cp_const_by_val(obj, (const ut8 *)&value, 8, RZ_BIN_JAVA_CP_LONG);
 }
 
 static RzList *cpfind_int(RzCore *core, RzBinJavaObj *obj, const char *cmd) {
-	ut32 value = (ut32)rz_cmd_java_get_input_num_value(core, cmd);
-	if (!rz_cmd_java_is_valid_input_num_value(core, cmd)) {
+	ut32 value = (ut32)rz_num_math(core->num, cmd);
+	if (!rz_num_is_valid_input(core->num, cmd)) {
 		return rz_list_new();
 	}
 	return rz_bin_java_find_cp_const_by_val(obj, (const ut8 *)&value, 4, RZ_BIN_JAVA_CP_INTEGER);
@@ -523,13 +521,13 @@ static RzCmdStatus rz_cmd_java_handle_replace_cp_value_double(RzCore *core, RzBi
 }
 
 static RzCmdStatus rz_cmd_java_handle_replace_cp_value_long(RzCore *core, RzBinJavaObj *obj, const char *cmd, ut16 idx, ut64 addr) {
-	ut64 value = rz_cmd_java_get_input_num_value(core, cmd);
+	ut64 value = rz_num_math(core->num, cmd);
 	bool res = rz_cmd_java_get_cp_bytes_and_write(core, obj, idx, addr, (ut8 *)&value, 8);
 	return res ? RZ_CMD_STATUS_OK : RZ_CMD_STATUS_ERROR;
 }
 
 static RzCmdStatus rz_cmd_java_handle_replace_cp_value_int(RzCore *core, RzBinJavaObj *obj, const char *cmd, ut16 idx, ut64 addr) {
-	ut32 value = (ut32)rz_cmd_java_get_input_num_value(core, cmd);
+	ut32 value = (ut32)rz_num_math(core->num, cmd);
 	bool res = rz_cmd_java_get_cp_bytes_and_write(core, obj, idx, addr, (ut8 *)&value, 4);
 	return res ? RZ_CMD_STATUS_OK : RZ_CMD_STATUS_ERROR;
 }
@@ -548,7 +546,7 @@ static RzCmdStatus rz_cmd_java_handle_replace_cp_value_str(RzCore *core, RzBinJa
 }
 
 static RzCmdStatus rz_cmd_java_handle_replace_cp_value(RzCore *core, int argc, const char **argv) {
-	if (!argv || argc != 2 || !rz_cmd_java_is_valid_input_num_value(core, argv[0])) {
+	if (!argv || argc != 2 || !rz_num_is_valid_input(core->num, argv[0])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
@@ -560,7 +558,7 @@ static RzCmdStatus rz_cmd_java_handle_replace_cp_value(RzCore *core, int argc, c
 		return RZ_CMD_STATUS_ERROR;
 	}
 
-	ut16 idx = rz_cmd_java_get_input_num_value(core, argv[0]);
+	ut16 idx = rz_num_math(core->num, argv[0]);
 	ut64 addr = 0;
 	char cp_type = 0;
 
@@ -737,7 +735,7 @@ static RzCmdStatus rz_cmd_java_handle_replace_classname_value(RzCore *core, int 
 
 static RzCmdStatus rz_cmd_java_handle_reload_bin(RzCore *core, int argc, const char **argv) {
 	if (!argv || argc != 1 ||
-		!rz_cmd_java_is_valid_input_num_value(core, argv[0])) {
+		!rz_num_is_valid_input(core->num, argv[0])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
@@ -753,7 +751,7 @@ static RzCmdStatus rz_cmd_java_handle_reload_bin(RzCore *core, int argc, const c
 	ut8 *buf = NULL;
 	bool res = false;
 
-	addr = rz_cmd_java_get_input_num_value(core, argv[0]);
+	addr = rz_num_math(core->num, argv[0]);
 	if (!rz_io_use_fd(core->io, core->file->fd)) {
 		eprintf("ERROR: rz_cmd_java_handle_reload_bin: Failed to use rz_io_use_fd.\n");
 		return RZ_CMD_STATUS_ERROR;
@@ -770,12 +768,16 @@ static RzCmdStatus rz_cmd_java_handle_reload_bin(RzCore *core, int argc, const c
 	rz_io_read_at(core->io, addr, buf, buf_size);
 	res = rz_cmd_java_reload_bin_from_buf(core, obj, buf, buf_size);
 	free(buf);
-	return res ? RZ_CMD_STATUS_OK : RZ_CMD_STATUS_ERROR;
+	if (!res) {
+		eprintf("ERROR: rz_cmd_java_handle_reload_bin: Failed to reload bin at 0x%" PFMT64x ".\n", addr);
+		return RZ_CMD_STATUS_ERROR;
+	}
+	return RZ_CMD_STATUS_OK;
 }
 
 static RzCmdStatus rz_cmd_java_handle_find_cp_const(RzCore *core, int argc, const char **argv) {
 	if (!argv || argc != 1 ||
-		(!rz_cmd_java_is_valid_input_num_value(core, argv[0]) && argv[0][0] != 'a')) {
+		(!rz_num_is_valid_input(core->num, argv[0]) && argv[0][0] != 'a')) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
@@ -796,7 +798,7 @@ static RzCmdStatus rz_cmd_java_handle_find_cp_const(RzCore *core, int argc, cons
 	ut16 idx = 0, tmpidx = 0;
 
 	if (user_index) {
-		idx = rz_cmd_java_get_input_num_value(core, argv[0]);
+		idx = rz_num_math(core->num, argv[0]);
 		if (idx == 0) {
 			eprintf("[-] rz_cmd_java_handle_find_cp_const: invalid CP Obj Index Supplied.\n");
 			return RZ_CMD_STATUS_ERROR;
@@ -852,7 +854,7 @@ static RzCmdStatus rz_cmd_java_handle_find_cp_const(RzCore *core, int argc, cons
 static RzCmdStatus rz_cmd_java_handle_field_info(RzCore *core, int argc, const char **argv) {
 	if (!argv || (argc != 1 && argc != 2)) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
-	} else if (argc == 2 && !rz_cmd_java_is_valid_input_num_value(core, argv[0])) {
+	} else if (argc == 2 && !rz_num_is_valid_input(core->num, argv[0])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
@@ -863,7 +865,7 @@ static RzCmdStatus rz_cmd_java_handle_field_info(RzCore *core, int argc, const c
 		return RZ_CMD_STATUS_ERROR;
 	}
 
-	ut16 idx = rz_cmd_java_get_input_num_value(core, argc > 1 ? argv[1] : NULL);
+	ut16 idx = rz_num_math(core->num, argc > 1 ? argv[1] : NULL);
 
 	switch (*(argv[0])) {
 	case 'c':
@@ -881,7 +883,7 @@ static RzCmdStatus rz_cmd_java_handle_field_info(RzCore *core, int argc, const c
 static RzCmdStatus rz_cmd_java_handle_method_info(RzCore *core, int argc, const char **argv) {
 	if (!argv || (argc != 1 && argc != 2)) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
-	} else if (argc == 2 && !rz_cmd_java_is_valid_input_num_value(core, argv[0])) {
+	} else if (argc == 2 && !rz_num_is_valid_input(core->num, argv[0])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
@@ -892,7 +894,7 @@ static RzCmdStatus rz_cmd_java_handle_method_info(RzCore *core, int argc, const 
 		return RZ_CMD_STATUS_ERROR;
 	}
 
-	ut16 idx = rz_cmd_java_get_input_num_value(core, argc > 1 ? argv[1] : NULL);
+	ut16 idx = rz_num_math(core->num, argc > 1 ? argv[1] : NULL);
 
 	switch (*(argv[0])) {
 	case 'c':
@@ -909,7 +911,7 @@ static RzCmdStatus rz_cmd_java_handle_method_info(RzCore *core, int argc, const 
 
 static RzCmdStatus rz_cmd_java_handle_calc_class_sz(RzCore *core, int argc, const char **argv) {
 	if (!argv || argc != 1 ||
-		!rz_cmd_java_is_valid_input_num_value(core, argv[0])) {
+		!rz_num_is_valid_input(core->num, argv[0])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
@@ -919,7 +921,7 @@ static RzCmdStatus rz_cmd_java_handle_calc_class_sz(RzCore *core, int argc, cons
 	ut8 *tbuf = NULL;
 	ut8 *buf = NULL;
 	ut32 def_size = (1 << 16);
-	ut64 addr = rz_cmd_java_get_input_num_value(core, argv[0]);
+	ut64 addr = rz_num_math(core->num, argv[0]);
 	ut64 alloc_size = file_size < def_size ? file_size : def_size;
 
 	while (alloc_size <= file_size) {
@@ -959,15 +961,15 @@ static RzCmdStatus rz_cmd_java_handle_calc_class_sz(RzCore *core, int argc, cons
 
 static RzCmdStatus rz_cmd_java_handle_isvalid(RzCore *core, int argc, const char **argv) {
 	if (!argv || argc != 2 ||
-		!rz_cmd_java_is_valid_input_num_value(core, argv[0]) ||
-		!rz_cmd_java_is_valid_input_num_value(core, argv[1])) {
+		!rz_num_is_valid_input(core->num, argv[0]) ||
+		!rz_num_is_valid_input(core->num, argv[1])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
 	ut64 res_size = UT64_MAX;
 	ut64 file_size = rz_io_fd_size(core->io, rz_core_file_cur(core)->fd);
-	ut64 addr = rz_cmd_java_get_input_num_value(core, argv[0]);
-	ut64 alloc_size = rz_cmd_java_get_input_num_value(core, argv[0]);
+	ut64 addr = rz_num_math(core->num, argv[0]);
+	ut64 alloc_size = rz_num_math(core->num, argv[0]);
 
 	// The header of a java class is at least 10 bytes.
 	if (alloc_size < 10) {
@@ -1005,7 +1007,7 @@ static RzCmdStatus rz_cmd_java_handle_resolve_cp(RzCore *core, int argc, const c
 	}
 
 	char c_type = *(argv[0]);
-	ut32 idx = rz_cmd_java_get_input_num_value(core, argv[1]);
+	ut32 idx = rz_num_math(core->num, argv[1]);
 
 	IFDBG rz_cons_printf("Function call made: %s %s\n", argv[0], argv[1]);
 	IFDBG rz_cons_printf("Ctype: %d (%c) RzBinJavaObj points to: %p and the idx is (%s): %d\n", c_type, c_type, obj, argv[1], idx);
@@ -1151,24 +1153,24 @@ static bool is_valid_argument_mcf(const char *b) {
 static RzCmdStatus rz_cmd_java_handle_flags_str(RzCore *core, int argc, const char **argv) {
 	if (!argv || argc != 2 ||
 		!is_valid_argument_mcf(argv[0]) ||
-		!rz_cmd_java_is_valid_input_num_value(core, argv[1])) {
+		!rz_num_is_valid_input(core->num, argv[1])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
-	ut64 flag_value = rz_cmd_java_get_input_num_value(core, argv[1]);
+	ut64 flag_value = rz_num_math(core->num, argv[1]);
 	return flags_str_address(argv[0], flag_value);
 }
 
 static RzCmdStatus rz_cmd_java_handle_flags_str_at(RzCore *core, int argc, const char **argv) {
 	if (!argv || argc != 2 ||
 		!is_valid_argument_mcf(argv[0]) ||
-		!rz_cmd_java_is_valid_input_num_value(core, argv[1])) {
+		!rz_num_is_valid_input(core->num, argv[1])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
 	ut8 buffer[2] = { 0 };
 	ut64 cur_offset = core->offset;
-	ut64 flag_value_addr = rz_cmd_java_get_input_num_value(core, argv[1]);
+	ut64 flag_value_addr = rz_num_math(core->num, argv[1]);
 
 	rz_io_read_at(core->io, flag_value_addr, buffer, 2);
 	if (cur_offset != core->offset) {
@@ -1181,12 +1183,12 @@ static RzCmdStatus rz_cmd_java_handle_flags_str_at(RzCore *core, int argc, const
 
 static RzCmdStatus rz_cmd_java_handle_set_flags(RzCore *core, int argc, const char **argv) {
 	if (!argv || argc != 3 ||
-		!rz_cmd_java_is_valid_input_num_value(core, argv[0]) ||
+		!rz_num_is_valid_input(core->num, argv[0]) ||
 		!is_valid_argument_mcf(argv[1])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
-	ut64 addr = rz_cmd_java_get_input_num_value(core, argv[0]);
+	ut64 addr = rz_num_math(core->num, argv[0]);
 	char f_type = *(argv[1]);
 	ut16 flag_value = 0;
 
@@ -1428,16 +1430,6 @@ static RzCmdStatus rz_cmd_java_resolve_cp_summary(RzBinJavaObj *obj, ut16 idx) {
 	return res ? RZ_CMD_STATUS_OK : RZ_CMD_STATUS_ERROR;
 }
 
-static bool rz_cmd_java_is_valid_input_num_value(RzCore *core, const char *input_value) {
-	ut64 value = input_value ? rz_num_math(core->num, input_value) : 0;
-	return !(value == 0 && input_value && *input_value == '0');
-}
-
-static ut64 rz_cmd_java_get_input_num_value(RzCore *core, const char *input_value) {
-	ut64 value = input_value ? rz_num_math(core->num, input_value) : 0;
-	return value;
-}
-
 static RzCmdStatus rz_cmd_java_print_class_access_flags_value(int argc, const char **argv) {
 	RzStrBuf *sb = rz_strbuf_new(argv[0]);
 	if (!sb) {
@@ -1557,7 +1549,7 @@ static RzCmdStatus rz_cmd_java_print_method_name(RzBinJavaObj *obj, ut16 idx) {
 
 static RzCmdStatus rz_cmd_java_handle_print_exceptions(RzCore *core, int argc, const char **argv) {
 	if (!argv || argc != 1 ||
-		!rz_cmd_java_is_valid_input_num_value(core, argv[0])) {
+		!rz_num_is_valid_input(core->num, argv[0])) {
 		return RZ_CMD_STATUS_WRONG_ARGS;
 	}
 
@@ -1573,7 +1565,7 @@ static RzCmdStatus rz_cmd_java_handle_print_exceptions(RzCore *core, int argc, c
 	RzBinJavaField *method;
 	RzList *exc_table = NULL;
 	RzBinJavaExceptionEntry *exc_entry;
-	ut64 func_addr = rz_cmd_java_get_input_num_value(core, argv[0]);
+	ut64 func_addr = rz_num_math(core->num, argv[0]);
 
 	rz_list_foreach (obj->methods_list, methods_iter, method) {
 		ut64 start = rz_bin_java_get_method_start(obj, method);
