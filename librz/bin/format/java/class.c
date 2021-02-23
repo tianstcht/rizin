@@ -6346,11 +6346,10 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *obj, int idx, ut8 space_bn_name_t
 		return NULL;
 	}
 	item = rz_bin_java_get_item_from_bin_cp_list(obj, idx);
-	if (item) {
-		tag = ((RzBinJavaCPTypeMetas *)item->metas->type_info)->tag;
-	} else {
+	if (!item) {
 		return rz_str_newf("invalid_cp_%d", idx);
 	}
+	tag = ((RzBinJavaCPTypeMetas *)item->metas->type_info)->tag;
 	if (tag == RZ_BIN_JAVA_CP_CLASS) {
 		item2 = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(obj, idx);
 		// str = rz_bin_java_get_name_from_bin_cp_list (obj, idx-1);
@@ -6380,9 +6379,7 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *obj, int idx, ut8 space_bn_name_t
 	} else if (tag == RZ_BIN_JAVA_CP_FIELDREF ||
 		tag == RZ_BIN_JAVA_CP_METHODREF ||
 		tag == RZ_BIN_JAVA_CP_INTERFACEMETHOD_REF) {
-		/*
-		*  The MethodRef, FieldRef, and InterfaceMethodRef structures
-		*/
+		// handles MethodRef, FieldRef, and InterfaceMethodRef structures
 		class_str = rz_bin_java_get_name_from_bin_cp_list(obj, item->info.cp_method.class_idx);
 		if (!class_str) {
 			class_str = empty;
