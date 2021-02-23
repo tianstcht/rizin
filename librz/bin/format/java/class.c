@@ -55,6 +55,8 @@ RZ_API RzBinJavaCPTypeObj *rz_bin_java_clone_cp_idx(RzBinJavaObj *bin, ut32 idx)
 RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_methodhandle_cp(RzBinJavaObj *bin, ut8 *buffer, ut64 sz);
 RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_methodtype_cp(RzBinJavaObj *bin, ut8 *buffer, ut64 sz);
 RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_invokedynamic_cp(RzBinJavaObj *bin, ut8 *buffer, ut64 sz);
+RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_module_cp(RzBinJavaObj *bin, ut8 *buffer, ut64 sz);
+RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_package_cp(RzBinJavaObj *bin, ut8 *buffer, ut64 sz);
 // Deallocs for type objects
 RZ_API void rz_bin_java_free_default(void /*RzBinJavaCPTypeObj*/ *obj);
 RZ_API void rz_bin_java_free_obj(void /*RzBinJavaCPTypeObj*/ *obj);
@@ -190,6 +192,8 @@ RZ_API ut64 rz_bin_java_calc_size_do_nothing(RzBinJavaCPTypeObj *obj);
 RZ_API ut64 rz_bin_java_calc_size_methodhandle_cp(RzBinJavaCPTypeObj *obj);
 RZ_API ut64 rz_bin_java_calc_size_methodtype_cp(RzBinJavaCPTypeObj *obj);
 RZ_API ut64 rz_bin_java_calc_size_invokedynamic_cp(RzBinJavaCPTypeObj *obj);
+RZ_API ut64 rz_bin_java_calc_size_module_cp(RzBinJavaCPTypeObj *obj);
+RZ_API ut64 rz_bin_java_calc_size_package_cp(RzBinJavaCPTypeObj *obj);
 RZ_API RzBinJavaStackMapFrame *rz_bin_java_default_stack_frame(void);
 
 RZ_API RzList *rz_bin_java_find_cp_const_by_val_float(RzBinJavaObj *bin_obj, const ut8 *bytes, ut32 len);
@@ -347,7 +351,7 @@ RzBinJavaStackMapFrameMetas RZ_BIN_JAVA_STACK_MAP_FRAME_METAS[] = {
 static RzBinJavaCPTypeObjectAllocs RZ_BIN_ALLOCS_CONSTANTS[] = {
 	{ rz_bin_java_new_do_nothing, rz_bin_java_free_do_nothing, rz_bin_java_summary_cp_print_null, rz_bin_java_calc_size_do_nothing, rz_bin_java_stringify_cp_null },
 	{ rz_bin_java_new_utf8_cp, rz_bin_java_free_utf8_info, rz_bin_java_summary_cp_print_utf8, rz_bin_java_calc_size_utf8_cp, rz_bin_java_stringify_cp_utf8 },
-	{ rz_bin_java_new_unknown_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_unknown, rz_bin_java_calc_size_unknown_cp, rz_bin_java_stringify_cp_unknown },
+	{ rz_bin_java_new_utf8_cp, rz_bin_java_free_utf8_info, rz_bin_java_summary_cp_print_utf8, rz_bin_java_calc_size_utf8_cp, rz_bin_java_stringify_cp_utf8 },
 	{ rz_bin_java_new_integer_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_integer, rz_bin_java_calc_size_integer_cp, rz_bin_java_stringify_cp_integer },
 	{ rz_bin_java_new_float_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_float, rz_bin_java_calc_size_float_cp, rz_bin_java_stringify_cp_float },
 	{ rz_bin_java_new_long_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_long, rz_bin_java_calc_size_long_cp, rz_bin_java_stringify_cp_long },
@@ -358,20 +362,22 @@ static RzBinJavaCPTypeObjectAllocs RZ_BIN_ALLOCS_CONSTANTS[] = {
 	{ rz_bin_java_new_methodref_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_methodref, rz_bin_java_calc_size_methodref_cp, rz_bin_java_stringify_cp_methodref },
 	{ rz_bin_java_new_interfacemethodref_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_interfacemethodref, rz_bin_java_calc_size_interfacemethodref_cp, rz_bin_java_stringify_cp_interfacemethodref },
 	{ rz_bin_java_new_name_and_type_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_name_and_type, rz_bin_java_calc_size_name_and_type_cp, rz_bin_java_stringify_cp_name_and_type },
-	{ NULL, NULL, NULL, NULL, NULL },
-	{ NULL, NULL, NULL, NULL, NULL },
+	{ rz_bin_java_new_unknown_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_unknown, rz_bin_java_calc_size_unknown_cp, rz_bin_java_stringify_cp_unknown },
+	{ rz_bin_java_new_unknown_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_unknown, rz_bin_java_calc_size_unknown_cp, rz_bin_java_stringify_cp_unknown },
 	{ rz_bin_java_new_methodhandle_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_methodhandle, rz_bin_java_calc_size_methodhandle_cp, rz_bin_java_stringify_cp_methodhandle },
 	{ rz_bin_java_new_methodtype_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_methodtype, rz_bin_java_calc_size_methodtype_cp, rz_bin_java_stringify_cp_methodtype },
-	{ NULL, NULL, NULL, NULL, NULL },
 	{ rz_bin_java_new_invokedynamic_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_invokedynamic, rz_bin_java_calc_size_invokedynamic_cp, rz_bin_java_stringify_cp_invokedynamic },
+	{ rz_bin_java_new_invokedynamic_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_invokedynamic, rz_bin_java_calc_size_invokedynamic_cp, rz_bin_java_stringify_cp_invokedynamic },
+	{ rz_bin_java_new_module_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_unknown, rz_bin_java_calc_size_module_cp, rz_bin_java_stringify_cp_unknown },
+	{ rz_bin_java_new_package_cp, rz_bin_java_free_default, rz_bin_java_summary_cp_print_unknown, rz_bin_java_calc_size_package_cp, rz_bin_java_stringify_cp_unknown },
 };
 static RzBinJavaCPTypeObj RZ_BIN_JAVA_NULL_TYPE;
-static ut8 RZ_BIN_JAVA_CP_METAS_SZ = 12;
+static ut8 RZ_BIN_JAVA_CP_METAS_SZ = 21;
 static RzBinJavaCPTypeMetas RZ_BIN_JAVA_CP_METAS[] = {
 	// Each field has a name pointer and a tag field
 	{ "NULL", RZ_BIN_JAVA_CP_NULL, 0, &RZ_BIN_ALLOCS_CONSTANTS[0] },
 	{ "Utf8", RZ_BIN_JAVA_CP_UTF8, 3, &RZ_BIN_ALLOCS_CONSTANTS[1] }, // 2 bytes = length, N bytes string (containts a pointer in the field)
-	{ "Unknown", RZ_BIN_JAVA_CP_UNKNOWN, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
+	{ "Unicode", RZ_BIN_JAVA_CP_UNICODE, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
 	{ "Integer", RZ_BIN_JAVA_CP_INTEGER, 5, &RZ_BIN_ALLOCS_CONSTANTS[3] }, // 4 bytes
 	{ "Float", RZ_BIN_JAVA_CP_FLOAT, 5, &RZ_BIN_ALLOCS_CONSTANTS[4] }, // 4 bytes
 	{ "Long", RZ_BIN_JAVA_CP_LONG, 9, &RZ_BIN_ALLOCS_CONSTANTS[5] }, // 4 high 4 low
@@ -382,12 +388,14 @@ static RzBinJavaCPTypeMetas RZ_BIN_JAVA_CP_METAS[] = {
 	{ "MethodRef", RZ_BIN_JAVA_CP_METHODREF, 5, &RZ_BIN_ALLOCS_CONSTANTS[10] }, // 2 class idx, 2 name/type_idx
 	{ "InterfaceMethodRef", RZ_BIN_JAVA_CP_INTERFACEMETHOD_REF, 5, &RZ_BIN_ALLOCS_CONSTANTS[11] }, // 2 class idx, 2 name/type_idx
 	{ "NameAndType", RZ_BIN_JAVA_CP_NAMEANDTYPE, 5, &RZ_BIN_ALLOCS_CONSTANTS[12] }, // 4 high 4 low
-	{ "Unknown", RZ_BIN_JAVA_CP_UNKNOWN, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
-	{ "Unknown", RZ_BIN_JAVA_CP_UNKNOWN, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
+	{ "Unknown", RZ_BIN_JAVA_CP_NOTHIN_13, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
+	{ "Unknown", RZ_BIN_JAVA_CP_NOTHIN_14, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
 	{ "MethodHandle", RZ_BIN_JAVA_CP_METHODHANDLE, 4, &RZ_BIN_ALLOCS_CONSTANTS[15] }, // 4 high 4 low
 	{ "MethodType", RZ_BIN_JAVA_CP_METHODTYPE, 3, &RZ_BIN_ALLOCS_CONSTANTS[16] }, // 4 high 4 low
-	{ "Unknown", RZ_BIN_JAVA_CP_UNKNOWN, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
+	{ "Dynamic", RZ_BIN_JAVA_CP_DYNAMIC, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
 	{ "InvokeDynamic", RZ_BIN_JAVA_CP_INVOKEDYNAMIC, 5, &RZ_BIN_ALLOCS_CONSTANTS[18] }, // 4 high 4 low
+	{ "Module", RZ_BIN_JAVA_CP_MODULE, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
+	{ "Package", RZ_BIN_JAVA_CP_PACKAGE, 0, &RZ_BIN_ALLOCS_CONSTANTS[2] },
 };
 static RzBinJavaAttrInfoObjectAllocs RBIN_JAVA_ATTRS_ALLOCS[] = {
 	{ rz_bin_java_new_annotation_default_attr, rz_bin_java_free_annotation_default_attr, rz_bin_java_summary_print_annotation_default_attr, rz_bin_java_calc_size_annotation_default_attr },
@@ -4330,7 +4338,7 @@ RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_unknown_cp(RzBinJavaObj *bin, ut8 *bu
 		memset(obj, 0, sizeof(RzBinJavaCPTypeObj));
 		obj->tag = tag;
 		obj->metas = RZ_NEW0(RzBinJavaMetaInfo);
-		obj->metas->type_info = (void *)&RZ_BIN_JAVA_CP_METAS[RZ_BIN_JAVA_CP_UNKNOWN];
+		obj->metas->type_info = (void *)&RZ_BIN_JAVA_CP_METAS[RZ_BIN_JAVA_CP_UNICODE];
 	}
 	return obj;
 }
@@ -4743,6 +4751,22 @@ RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_invokedynamic_cp(RzBinJavaObj *bin, u
 		obj->info.cp_invoke_dynamic.name_and_type_index = rz_read_at_be16(buffer, 3);
 	}
 	return obj;
+}
+
+RZ_API ut64 rz_bin_java_calc_size_module_cp(RzBinJavaCPTypeObj *obj) {
+	return 2;
+}
+
+RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_module_cp(RzBinJavaObj *bin, ut8 *buffer, ut64 sz) {
+	return NULL;
+}
+
+RZ_API ut64 rz_bin_java_calc_size_package_cp(RzBinJavaCPTypeObj *obj) {
+	return 2;
+}
+
+RZ_API RzBinJavaCPTypeObj *rz_bin_java_new_package_cp(RzBinJavaObj *bin, ut8 *buffer, ut64 sz) {
+	return NULL;
 }
 
 RZ_API int rz_bin_java_check_reset_cp_obj(RzBinJavaCPTypeObj *cp_obj, ut8 tag) {
@@ -6267,14 +6291,14 @@ RZ_API RzBinJavaCPTypeObj *rz_bin_java_find_cp_name_and_type_info(RzBinJavaObj *
 	return res;
 }
 
-RZ_API char *rz_bin_java_resolve_cp_idx_type(RzBinJavaObj *BIN_OBJ, int idx) {
+RZ_API char *rz_bin_java_resolve_cp_idx_type(RzBinJavaObj *bin_obj, int idx) {
 	RzBinJavaCPTypeObj *item = NULL;
 	char *str = NULL;
-	if (BIN_OBJ && BIN_OBJ->cp_count < 1) {
-		// rz_bin_java_new_bin(BIN_OBJ);
+	if (bin_obj && bin_obj->cp_count < 1) {
+		// rz_bin_java_new_bin(bin_obj);
 		return NULL;
 	}
-	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(BIN_OBJ, idx);
+	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
 	if (item) {
 		str = strdup(((RzBinJavaCPTypeMetas *)item->metas->type_info)->name);
 	} else {
@@ -6308,7 +6332,7 @@ RZ_API RzBinJavaCPTypeObj *rz_bin_java_find_cp_ref_info(RzBinJavaObj *bin, ut16 
 	return res;
 }
 
-RZ_API char *rz_bin_java_resolve(RzBinJavaObj *BIN_OBJ, int idx, ut8 space_bn_name_type) {
+RZ_API char *rz_bin_java_resolve(RzBinJavaObj *bin_obj, int idx, ut8 space_bn_name_type) {
 	// TODO XXX FIXME add a size parameter to the str when it is passed in
 	RzBinJavaCPTypeObj *item = NULL, *item2 = NULL;
 	char *class_str = NULL,
@@ -6318,11 +6342,11 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *BIN_OBJ, int idx, ut8 space_bn_na
 	     *empty = "",
 	     *cp_name = NULL,
 	     *str = NULL;
-	if (BIN_OBJ && BIN_OBJ->cp_count < 1) {
-		// rz_bin_java_new_bin(BIN_OBJ);
+	if (bin_obj && bin_obj->cp_count < 1) {
+		// rz_bin_java_new_bin(bin_obj);
 		return NULL;
 	}
-	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(BIN_OBJ, idx);
+	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
 	if (item) {
 		cp_name = ((RzBinJavaCPTypeMetas *)item->metas->type_info)->name;
 		// eprintf("java_resolve Resolved: (%d) %s\n", idx, cp_name);
@@ -6335,17 +6359,17 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *BIN_OBJ, int idx, ut8 space_bn_na
 		return str;
 	}
 	if (strcmp(cp_name, "Class") == 0) {
-		item2 = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(BIN_OBJ, idx);
-		// str = rz_bin_java_get_name_from_bin_cp_list (BIN_OBJ, idx-1);
-		class_str = rz_bin_java_get_item_name_from_bin_cp_list(BIN_OBJ, item);
+		item2 = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
+		// str = rz_bin_java_get_name_from_bin_cp_list (bin_obj, idx-1);
+		class_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
 		if (!class_str) {
 			class_str = empty;
 		}
-		name_str = rz_bin_java_get_item_name_from_bin_cp_list(BIN_OBJ, item2);
+		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item2);
 		if (!name_str) {
 			name_str = empty;
 		}
-		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(BIN_OBJ, item2);
+		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(bin_obj, item2);
 		if (!desc_str) {
 			desc_str = empty;
 		}
@@ -6366,15 +6390,15 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *BIN_OBJ, int idx, ut8 space_bn_na
 		/*
 		*  The MethodRef, FieldRef, and InterfaceMethodRef structures
 		*/
-		class_str = rz_bin_java_get_name_from_bin_cp_list(BIN_OBJ, item->info.cp_method.class_idx);
+		class_str = rz_bin_java_get_name_from_bin_cp_list(bin_obj, item->info.cp_method.class_idx);
 		if (!class_str) {
 			class_str = empty;
 		}
-		name_str = rz_bin_java_get_item_name_from_bin_cp_list(BIN_OBJ, item);
+		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
 		if (!name_str) {
 			name_str = empty;
 		}
-		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(BIN_OBJ, item);
+		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(bin_obj, item);
 		if (!desc_str) {
 			desc_str = empty;
 		}
@@ -6390,7 +6414,7 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *BIN_OBJ, int idx, ut8 space_bn_na
 			free(desc_str);
 		}
 	} else if (!strcmp(cp_name, "String")) {
-		string_str = rz_bin_java_get_utf8_from_bin_cp_list(BIN_OBJ, item->info.cp_string.string_idx);
+		string_str = rz_bin_java_get_utf8_from_bin_cp_list(bin_obj, item->info.cp_string.string_idx);
 		str = NULL;
 		// eprintf("java_resolve String got: (%d) %s\n", item->info.cp_string.string_idx, string_str);
 		if (!string_str) {
@@ -6419,11 +6443,11 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *BIN_OBJ, int idx, ut8 space_bn_na
 	} else if (!strcmp(cp_name, "Float")) {
 		str = rz_str_newf("%f", raw_to_float(item->info.cp_float.bytes.raw, 0));
 	} else if (!strcmp(cp_name, "NameAndType")) {
-		name_str = rz_bin_java_get_item_name_from_bin_cp_list(BIN_OBJ, item);
+		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
 		if (!name_str) {
 			name_str = empty;
 		}
-		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(BIN_OBJ, item);
+		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(bin_obj, item);
 		if (!desc_str) {
 			desc_str = empty;
 		}
@@ -6440,11 +6464,11 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *BIN_OBJ, int idx, ut8 space_bn_na
 	return str;
 }
 
-RZ_API ut8 rz_bin_java_does_cp_idx_ref_method(RzBinJavaObj *BIN_OBJ, int idx) {
+RZ_API ut8 rz_bin_java_does_cp_idx_ref_method(RzBinJavaObj *bin_obj, int idx) {
 	RzBinJavaField *fm_type = NULL;
 	RzListIter *iter;
 	ut8 res = 0;
-	rz_list_foreach (BIN_OBJ->methods_list, iter, fm_type) {
+	rz_list_foreach (bin_obj->methods_list, iter, fm_type) {
 		if (fm_type->field_ref_cp_obj->metas->ord == idx) {
 			res = 1;
 			break;
@@ -6453,11 +6477,11 @@ RZ_API ut8 rz_bin_java_does_cp_idx_ref_method(RzBinJavaObj *BIN_OBJ, int idx) {
 	return res;
 }
 
-RZ_API ut8 rz_bin_java_does_cp_idx_ref_field(RzBinJavaObj *BIN_OBJ, int idx) {
+RZ_API ut8 rz_bin_java_does_cp_idx_ref_field(RzBinJavaObj *bin_obj, int idx) {
 	RzBinJavaField *fm_type = NULL;
 	RzListIter *iter;
 	ut8 res = 0;
-	rz_list_foreach (BIN_OBJ->fields_list, iter, fm_type) {
+	rz_list_foreach (bin_obj->fields_list, iter, fm_type) {
 		if (fm_type->field_ref_cp_obj->metas->ord == idx) {
 			res = 1;
 			break;
@@ -6490,43 +6514,6 @@ RZ_API RzList *rz_bin_java_get_method_num_name(RzBinJavaObj *bin_obj) {
 	return res;
 }
 
-/*
-   RZ_API int rz_bin_java_does_cp_obj_ref_idx (RzBinJavaObj *bin_obj, RzBinJavaCPTypeObj *cp_obj, ut16 idx) {
-        int res = false;
-        RzBinJavaCPTypeObj *t_obj = NULL;
-        if (cp_obj) {
-                switch (cp_obj->tag) {
-                        case RZ_BIN_JAVA_CP_NULL: break;
-                        case RZ_BIN_JAVA_CP_UTF8: break;
-                        case RZ_BIN_JAVA_CP_UNKNOWN: break;
-                        case RZ_BIN_JAVA_CP_INTEGER: break;
-                        case RZ_BIN_JAVA_CP_FLOAT: break;
-                        case RZ_BIN_JAVA_CP_LONG: break;
-                        case RZ_BIN_JAVA_CP_DOUBLE: break;
-                        case RZ_BIN_JAVA_CP_CLASS:
-                                res = idx == cp_obj->info.cp_class.name_idx ? true : false;
-                                break;
-                        case RZ_BIN_JAVA_CP_STRING:
-                                res = idx == cp_obj->info.cp_string.string_idx ? true : false;
-                                break;
-                        case RZ_BIN_JAVA_CP_METHODREF: break;// check if idx is referenced here
-                        case RZ_BIN_JAVA_CP_INTERFACEMETHOD_REF: break; // check if idx is referenced here
-                        case RZ_BIN_JAVA_CP_FIELDREF:
-                                t_obj = rz_bin_java_get_item_from_cp (bin_obj, cp_obj->info.cp_method.class_idx);
-                                res = rz_bin_java_does_cp_obj_ref_idx (bin_obj, t_obj, idx);
-                                if (res == true) break;
-                                t_obj = rz_bin_java_get_item_from_cp (bin_obj, cp_obj->info.cp_method.name_and_type_idx);
-                                res = rz_bin_java_does_cp_obj_ref_idx (bin_obj, t_obj, idx);
-                                break;
-                        case RZ_BIN_JAVA_CP_NAMEANDTYPE: break;// check if idx is referenced here
-                                obj->info.cp_name_and_type.name_idx
-                        case RZ_BIN_JAVA_CP_METHODHANDLE: break;// check if idx is referenced here
-                        case RZ_BIN_JAVA_CP_METHODTYPE: break;// check if idx is referenced here
-                        case RZ_BIN_JAVA_CP_INVOKEDYNAMIC: break;// check if idx is referenced here
-                }
-        }
-   }
- */
 RZ_API RzList *rz_bin_java_find_cp_const_by_val_long(RzBinJavaObj *bin_obj, const ut8 *bytes, ut32 len) {
 	RzList *res = rz_list_newf(free);
 	ut32 *v = NULL;
@@ -6601,7 +6588,12 @@ RZ_API RzList *rz_bin_java_find_cp_const_by_val(RzBinJavaObj *bin_obj, const ut8
 	case RZ_BIN_JAVA_CP_FLOAT: return rz_bin_java_find_cp_const_by_val_float(bin_obj, bytes, len);
 	case RZ_BIN_JAVA_CP_LONG: return rz_bin_java_find_cp_const_by_val_long(bin_obj, bytes, len);
 	case RZ_BIN_JAVA_CP_DOUBLE: return rz_bin_java_find_cp_const_by_val_double(bin_obj, bytes, len);
-	case RZ_BIN_JAVA_CP_UNKNOWN:
+	case RZ_BIN_JAVA_CP_UNICODE:
+	case RZ_BIN_JAVA_CP_NOTHIN_13:
+	case RZ_BIN_JAVA_CP_NOTHIN_14:
+	case RZ_BIN_JAVA_CP_DYNAMIC:
+	case RZ_BIN_JAVA_CP_MODULE:
+	case RZ_BIN_JAVA_CP_PACKAGE:
 	default:
 		eprintf("Failed to perform the search for: %s\n", bytes);
 		return rz_list_new();
@@ -7131,7 +7123,7 @@ RZ_API char *rz_bin_java_resolve_without_space(RzBinJavaObj *obj, int idx) {
 	return rz_bin_java_resolve(obj, idx, 0);
 }
 
-RZ_API char *rz_bin_java_resolve_b64_encode(RzBinJavaObj *BIN_OBJ, ut16 idx) {
+RZ_API char *rz_bin_java_resolve_b64_encode(RzBinJavaObj *bin_obj, ut16 idx) {
 	RzBinJavaCPTypeObj *item = NULL, *item2 = NULL;
 	char *class_str = NULL,
 	     *name_str = NULL,
@@ -7141,11 +7133,11 @@ RZ_API char *rz_bin_java_resolve_b64_encode(RzBinJavaObj *BIN_OBJ, ut16 idx) {
 	     *cp_name = NULL,
 	     *str = NULL, *out = NULL;
 	int memory_alloc = 0;
-	if (BIN_OBJ && BIN_OBJ->cp_count < 1) {
-		// rz_bin_java_new_bin(BIN_OBJ);
+	if (bin_obj && bin_obj->cp_count < 1) {
+		// rz_bin_java_new_bin(bin_obj);
 		return NULL;
 	}
-	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(BIN_OBJ, idx);
+	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
 	if (item) {
 		cp_name = ((RzBinJavaCPTypeMetas *)item->metas->type_info)->name;
 		// eprintf("java_resolve Resolved: (%d) %s\n", idx, cp_name);
@@ -7153,17 +7145,17 @@ RZ_API char *rz_bin_java_resolve_b64_encode(RzBinJavaObj *BIN_OBJ, ut16 idx) {
 		return NULL;
 	}
 	if (!strcmp(cp_name, "Class")) {
-		item2 = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(BIN_OBJ, idx);
-		// str = rz_bin_java_get_name_from_bin_cp_list (BIN_OBJ, idx-1);
-		class_str = rz_bin_java_get_item_name_from_bin_cp_list(BIN_OBJ, item);
+		item2 = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
+		// str = rz_bin_java_get_name_from_bin_cp_list (bin_obj, idx-1);
+		class_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
 		if (!class_str) {
 			class_str = empty;
 		}
-		name_str = rz_bin_java_get_item_name_from_bin_cp_list(BIN_OBJ, item2);
+		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item2);
 		if (!name_str) {
 			name_str = empty;
 		}
-		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(BIN_OBJ, item2);
+		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(bin_obj, item2);
 		if (!desc_str) {
 			desc_str = empty;
 		}
@@ -7192,15 +7184,15 @@ RZ_API char *rz_bin_java_resolve_b64_encode(RzBinJavaObj *BIN_OBJ, ut16 idx) {
 		/*
 		*  The MethodRef, FieldRef, and InterfaceMethodRef structures
 		*/
-		class_str = rz_bin_java_get_name_from_bin_cp_list(BIN_OBJ, item->info.cp_method.class_idx);
+		class_str = rz_bin_java_get_name_from_bin_cp_list(bin_obj, item->info.cp_method.class_idx);
 		if (!class_str) {
 			class_str = empty;
 		}
-		name_str = rz_bin_java_get_item_name_from_bin_cp_list(BIN_OBJ, item);
+		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
 		if (!name_str) {
 			name_str = empty;
 		}
-		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(BIN_OBJ, item);
+		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(bin_obj, item);
 		if (!desc_str) {
 			desc_str = empty;
 		}
@@ -7224,8 +7216,8 @@ RZ_API char *rz_bin_java_resolve_b64_encode(RzBinJavaObj *BIN_OBJ, ut16 idx) {
 			free(desc_str);
 		}
 	} else if (strcmp(cp_name, "String") == 0) {
-		ut32 length = rz_bin_java_get_utf8_len_from_bin_cp_list(BIN_OBJ, item->info.cp_string.string_idx);
-		string_str = rz_bin_java_get_utf8_from_bin_cp_list(BIN_OBJ, item->info.cp_string.string_idx);
+		ut32 length = rz_bin_java_get_utf8_len_from_bin_cp_list(bin_obj, item->info.cp_string.string_idx);
+		string_str = rz_bin_java_get_utf8_from_bin_cp_list(bin_obj, item->info.cp_string.string_idx);
 		str = NULL;
 		// eprintf("java_resolve String got: (%d) %s\n", item->info.cp_string.string_idx, string_str);
 		if (!string_str) {
@@ -7286,11 +7278,11 @@ RZ_API char *rz_bin_java_resolve_b64_encode(RzBinJavaObj *BIN_OBJ, ut16 idx) {
 			str = out;
 		}
 	} else if (!strcmp(cp_name, "NameAndType")) {
-		name_str = rz_bin_java_get_item_name_from_bin_cp_list(BIN_OBJ, item);
+		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
 		if (!name_str) {
 			name_str = empty;
 		}
-		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(BIN_OBJ, item);
+		desc_str = rz_bin_java_get_item_desc_from_bin_cp_list(bin_obj, item);
 		if (!desc_str) {
 			desc_str = empty;
 		}
@@ -7316,26 +7308,26 @@ RZ_API char *rz_bin_java_resolve_b64_encode(RzBinJavaObj *BIN_OBJ, ut16 idx) {
 	return str;
 }
 
-RZ_API ut64 rz_bin_java_resolve_cp_idx_address(RzBinJavaObj *BIN_OBJ, int idx) {
+RZ_API ut64 rz_bin_java_resolve_cp_idx_address(RzBinJavaObj *bin_obj, int idx) {
 	RzBinJavaCPTypeObj *item = NULL;
 	ut64 addr = -1;
-	if (BIN_OBJ && BIN_OBJ->cp_count < 1) {
+	if (bin_obj && bin_obj->cp_count < 1) {
 		return -1;
 	}
-	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(BIN_OBJ, idx);
+	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
 	if (item) {
 		addr = item->file_offset + item->loadaddr;
 	}
 	return addr;
 }
 
-RZ_API char *rz_bin_java_resolve_cp_idx_to_string(RzBinJavaObj *BIN_OBJ, int idx) {
+RZ_API char *rz_bin_java_resolve_cp_idx_to_string(RzBinJavaObj *bin_obj, int idx) {
 	RzBinJavaCPTypeObj *item = NULL;
 	char *value = NULL;
-	if (BIN_OBJ && BIN_OBJ->cp_count < 1) {
+	if (bin_obj && bin_obj->cp_count < 1) {
 		return NULL;
 	}
-	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(BIN_OBJ, idx);
+	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
 	if (item) {
 		value = ((RzBinJavaCPTypeMetas *)
 				 item->metas->type_info)
@@ -7344,12 +7336,12 @@ RZ_API char *rz_bin_java_resolve_cp_idx_to_string(RzBinJavaObj *BIN_OBJ, int idx
 	return value;
 }
 
-RZ_API int rz_bin_java_summary_resolve_cp_idx_print(RzBinJavaObj *BIN_OBJ, int idx) {
+RZ_API int rz_bin_java_summary_resolve_cp_idx_print(RzBinJavaObj *bin_obj, int idx) {
 	RzBinJavaCPTypeObj *item = NULL;
-	if (BIN_OBJ && BIN_OBJ->cp_count < 1) {
+	if (bin_obj && bin_obj->cp_count < 1) {
 		return false;
 	}
-	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(BIN_OBJ, idx);
+	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
 	if (item) {
 		((RzBinJavaCPTypeMetas *)
 				item->metas->type_info)
@@ -7630,17 +7622,17 @@ RZ_API RzList *rz_bin_java_find_cp_const_by_val_int(RzBinJavaObj *bin_obj, const
 	return res;
 }
 
-RZ_API char rz_bin_java_resolve_cp_idx_tag(RzBinJavaObj *BIN_OBJ, int idx) {
+RZ_API char rz_bin_java_resolve_cp_idx_tag(RzBinJavaObj *bin_obj, int idx) {
 	RzBinJavaCPTypeObj *item = NULL;
-	if (BIN_OBJ && BIN_OBJ->cp_count < 1) {
-		// rz_bin_java_new_bin(BIN_OBJ);
-		return RZ_BIN_JAVA_CP_UNKNOWN;
+	if (bin_obj && bin_obj->cp_count < 1) {
+		// rz_bin_java_new_bin(bin_obj);
+		return RZ_BIN_JAVA_CP_UNICODE;
 	}
-	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(BIN_OBJ, idx);
+	item = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(bin_obj, idx);
 	if (item) {
 		return item->tag;
 	}
-	return RZ_BIN_JAVA_CP_UNKNOWN;
+	return RZ_BIN_JAVA_CP_UNICODE;
 }
 
 RZ_API int rz_bin_java_integer_cp_set(RzBinJavaObj *bin, ut16 idx, ut32 val) {
