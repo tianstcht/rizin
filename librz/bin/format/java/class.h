@@ -9,7 +9,7 @@
 #include <sdb.h>
 #include <rz_util.h>
 
-#define raw_to_float(x, y) ((float)rz_read_at_be32(x, y))
+float raw_to_float(const ut8 *raw, ut64 offset);
 double raw_to_double(const ut8 *raw, ut64 offset);
 
 #if defined(_MSC_VER) && !defined(RZ_API_BIN_ONLY)

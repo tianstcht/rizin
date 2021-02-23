@@ -6435,13 +6435,17 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *bin_obj, int idx, ut8 space_bn_na
 		}
 		free(tmp_str);
 	} else if (!strcmp(cp_name, "Long")) {
-		str = rz_str_newf("0x%" PFMT64x, rz_read_at_be64(item->info.cp_long.bytes.raw, 0));
+		str = rz_str_newf("0x%" PFMT64x, rz_read_at_be64(item->value, 0));
 	} else if (!strcmp(cp_name, "Double")) {
-		str = rz_str_newf("%f", raw_to_double(item->info.cp_double.bytes.raw, 0));
+		double dbl = raw_to_double(item->info.cp_double.bytes.raw, 0);
+		str = rz_str_newf("%lf", dbl);
+		rz_str_replace_char_once(str, '.', ','); // hack to prevent display issue with dots.
 	} else if (!strcmp(cp_name, "Integer")) {
 		str = rz_str_newf("0x%08x", rz_read_at_be32(item->info.cp_integer.bytes.raw, 0));
 	} else if (!strcmp(cp_name, "Float")) {
-		str = rz_str_newf("%f", raw_to_float(item->info.cp_float.bytes.raw, 0));
+		float flt = raw_to_float(item->info.cp_float.bytes.raw, 0);
+		str = rz_str_newf("%f", flt);
+		rz_str_replace_char_once(str, '.', ','); // hack to prevent display issue with dots.
 	} else if (!strcmp(cp_name, "NameAndType")) {
 		name_str = rz_bin_java_get_item_name_from_bin_cp_list(bin_obj, item);
 		if (!name_str) {

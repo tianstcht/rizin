@@ -133,12 +133,13 @@ RZ_API int java_print_opcode(RzBinJavaObj *obj, ut64 addr, int idx, const ut8 *b
 		return update_bytes_consumed(JAVA_OPS[idx].size);
 	case 0x13:
 	case 0x14:
-		arg = rz_bin_java_resolve_without_space(obj, (int)rz_read_at_be16(bytes, 1));
+		val_one = rz_read_at_be16(bytes, 1);
+		arg = rz_bin_java_resolve_without_space(obj, val_one);
 		if (arg) {
 			snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
 			free(arg);
 		} else {
-			snprintf(output, outlen, "%s #%d", JAVA_OPS[idx].name, rz_read_at_be16(bytes, 1));
+			snprintf(output, outlen, "%s #%u", JAVA_OPS[idx].name, val_one);
 		}
 		output[outlen - 1] = 0;
 		return update_bytes_consumed(JAVA_OPS[idx].size);
