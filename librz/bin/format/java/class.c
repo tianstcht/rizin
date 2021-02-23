@@ -6349,12 +6349,7 @@ RZ_API char *rz_bin_java_resolve(RzBinJavaObj *obj, int idx, ut8 space_bn_name_t
 	if (item) {
 		tag = ((RzBinJavaCPTypeMetas *)item->metas->type_info)->tag;
 	} else {
-		int size = snprintf(NULL, 0, "invalid_cp_%d", idx);
-		str = malloc(size + 1);
-		if (str) {
-			snprintf(str, size + 1, "invalid_cp_%d", idx);
-		}
-		return str;
+		return rz_str_newf("invalid_cp_%d", idx);
 	}
 	if (tag == RZ_BIN_JAVA_CP_CLASS) {
 		item2 = (RzBinJavaCPTypeObj *)rz_bin_java_get_item_from_bin_cp_list(obj, idx);
