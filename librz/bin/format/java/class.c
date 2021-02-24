@@ -1138,7 +1138,7 @@ RZ_API RzBinJavaField *rz_bin_java_read_next_method(RzBinJavaObj *bin, const ut6
 		for (i = 0; i < method->attr_count; i++) {
 			attr = rz_bin_java_read_next_attr(bin, adv + offset, buf, len);
 			if (!attr) {
-				eprintf("[X] rz_bin_java: Error unable to parse remainder of classfile after Method Attribute: %d.\n", i);
+				eprintf("[X] rz_bin_java_read_next_attr: Error unable to parse remainder of classfile after Method Attribute: %d.\n", i);
 				break;
 			}
 			if ((rz_bin_java_get_attr_type_by_name(attr->name))->type == RZ_BIN_JAVA_ATTRIBUTE_CODE_ATTR) {
@@ -1153,7 +1153,7 @@ RZ_API RzBinJavaField *rz_bin_java_read_next_method(RzBinJavaObj *bin, const ut6
 			rz_list_append(method->attributes, attr);
 			adv += attr->size;
 			if (adv + offset >= len) {
-				eprintf("[X] rz_bin_java: Error unable to parse remainder of classfile after Method Attribute: %d.\n", i);
+				eprintf("[X] rz_bin_java_read_next_method: Error unable to parse remainder of classfile after Method Attribute: %d.\n", i);
 				break;
 			}
 		}
@@ -1745,6 +1745,7 @@ RZ_API RzBinJavaAttrInfo *rz_bin_java_read_next_attr(RzBinJavaObj *bin, const ut
 		free(buffer);
 
 		if (!attr) {
+			eprintf("can't alloc\n");
 			return NULL;
 		}
 		attr->size = sz;
@@ -1765,6 +1766,7 @@ RZ_API RzBinJavaAttrInfo *rz_bin_java_read_next_attr_from_buffer(RzBinJavaObj *b
 		eprintf("rz_bin_Java_read_next_attr_from_buffer: invalid buffer size %d\n", (int)sz);
 		return NULL;
 	}
+	eprintf("buf_offset %llx\n", buf_offset);
 	name_idx = rz_read_at_be16(buffer, offset);
 	offset += 2;
 	nsz = rz_read_at_be32(buffer, offset);
@@ -1779,6 +1781,7 @@ RZ_API RzBinJavaAttrInfo *rz_bin_java_read_next_attr_from_buffer(RzBinJavaObj *b
 		// eprintf("Typeinfo: %s, was %s\n", type_info->name, name);
 		if (nsz > sz) {
 			free(name);
+			eprintf("bad size %llx > %llx\n", nsz, sz);
 			return NULL;
 		}
 		if ((attr = type_info->allocs->new_obj(bin, buffer, nsz, buf_offset))) {
