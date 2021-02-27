@@ -880,8 +880,8 @@ RZ_API char *rz_bin_java_stringify_cp_methodhandle(RzBinJavaCPTypeObj *obj);
 RZ_API char *rz_bin_java_stringify_cp_class(RzBinJavaCPTypeObj *obj);
 
 RZ_API RzBinSymbol *rz_bin_java_create_new_symbol_from_field_with_access_flags(RzBinJavaField *fm_type);
-RZ_API RzBinSymbol *rz_bin_java_create_new_symbol_from_cp_idx(ut32 cp_idx, ut64 baddr);
-RZ_API RzBinSymbol *rz_bin_java_create_new_symbol_from_invoke_dynamic(RzBinJavaCPTypeObj *obj, ut64 baddr);
+RZ_API RzBinSymbol *rz_bin_java_create_new_symbol_from_cp_idx(RzBinJavaObj *bin, ut32 cp_idx, ut64 baddr);
+RZ_API RzBinSymbol *rz_bin_java_create_new_symbol_from_invoke_dynamic(RzBinJavaObj *bin, RzBinJavaCPTypeObj *obj, ut64 baddr);
 RZ_API RzBinSymbol *rz_bin_java_create_new_symbol_from_ref(RzBinJavaObj *bin, RzBinJavaCPTypeObj *obj, ut64 baddr);
 RZ_API RzBinSymbol *rz_bin_java_create_new_symbol_from_method(RzBinJavaField *fm_type);
 
