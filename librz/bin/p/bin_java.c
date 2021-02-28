@@ -5,32 +5,215 @@
 #include <rz_lib.h>
 #include <rz_bin.h>
 
+#include "../format/java/new/class_bin.h"
+
+#define rz_bin_file_get_java_class(bf) ((RzBinJavaClass *)bf->o->bin_obj)
+
+static RzBinInfo *info(RzBinFile *bf) {
+	RzBinJavaClass *jclass = rz_bin_file_get_java_class(bf);
+	if (!jclass) {
+		return NULL;
+	}
+	RzBinInfo *binfo = RZ_NEW0(RzBinInfo);
+	if (!binfo) {
+		return NULL;
+	}
+	binfo->lang /*      */ = strdup("java");
+	binfo->file /*      */ = strdup(bf->file);
+	binfo->type /*      */ = strdup("JAVA CLASS");
+	binfo->bclass /*    */ = rz_bin_java_class_version(jclass);
+	binfo->has_va /*    */ = false;
+	binfo->rclass /*    */ = strdup("class");
+	binfo->os /*        */ = strdup("any");
+	binfo->subsystem /* */ = strdup("any");
+	binfo->machine /*   */ = strdup("jvm");
+	binfo->arch /*      */ = strdup("java");
+	binfo->bits /*      */ = 32;
+	binfo->big_endian /**/ = true;
+	binfo->dbg_info /*  */ = 4 | 8; // LineNums | Syms
+	return binfo;
+}
+
+static bool load_buffer(RzBinFile *bf, void **bin_obj, RzBuffer *buf, ut64 loadaddr, Sdb *sdb) {
+	RzBinJavaClass *jclass = rz_bin_java_class_new(buf, loadaddr, sdb);
+	if (!jclass) {
+		return false;
+	}
+	*bin_obj = jclass;
+	return true;
+}
+
+static void destroy(RzBinFile *bf) {
+	rz_bin_java_class_free(rz_bin_file_get_java_class(bf));
+}
+
+static bool check_buffer(RzBuffer *b) {
+	if (rz_buf_size(b) > 32) {
+		ut8 buf[4];
+		rz_buf_read_at(b, 0, buf, sizeof(buf));
+		return !memcmp(buf, "\xca\xfe\xba\xbe", 4);
+	}
+	return false;
+}
+
+static ut64 baddr(RzBinFile *bf) {
+	return 0;
+}
+
+static Sdb *get_sdb(RzBinFile *bf) {
+	return bf->sdb;
+}
+
+static void free_rz_bin_class(void /*RzBinClass*/ *k) {
+	RzBinClass *bclass = k;
+	if (bclass) {
+		rz_list_free(bclass->methods);
+		rz_list_free(bclass->fields);
+		free(bclass->name);
+		free(bclass->super);
+		free(bclass->visibility_str);
+		free(bclass);
+	}
+}
+
+static RzList *classes(RzBinFile *bf) {
+	RzBinClass *bclass = NULL;
+	RzList *classes = NULL;
+	RzBinJavaClass *jclass = rz_bin_file_get_java_class(bf);
+	if (!jclass) {
+		return NULL;
+	}
+
+	classes = rz_list_newf(free_rz_bin_class);
+	if (!classes) {
+		return NULL;
+	}
+
+	bclass = RZ_NEW0(RzBinClass);
+	if (!bclass) {
+		rz_list_free(classes);
+		return NULL;
+	}
+	rz_list_append(classes, bclass);
+
+	bclass->name = rz_bin_java_class_name(jclass);
+	bclass->super = rz_bin_java_class_super(jclass);
+	bclass->visibility = rz_bin_java_class_access_flags(jclass);
+	bclass->visibility_str = rz_bin_java_class_access_flags_readable(jclass);
+
+	bclass->methods = rz_bin_java_class_methods_as_symbols(jclass);
+	bclass->fields = rz_bin_java_class_fields_as_binfields(jclass);
+	if (!bclass->methods || !bclass->fields) {
+		rz_list_free(classes);
+		return NULL;
+	}
+
+	return classes;
+}
+
+static RzList *imports(RzBinFile *bf) {
+	RzBinJavaClass *jclass = rz_bin_file_get_java_class(bf);
+	if (!jclass) {
+		return NULL;
+	}
+
+	return rz_bin_java_class_const_pool_as_imports(jclass);
+}
+
+static RzList *sections(RzBinFile *bf) {
+	RzBinJavaClass *jclass = rz_bin_file_get_java_class(bf);
+	if (!jclass) {
+		return NULL;
+	}
+
+	return rz_bin_java_class_as_sections(jclass);
+}
+
+static RzList *symbols(RzBinFile *bf) {
+	RzList *tmp;
+	RzBinJavaClass *jclass = rz_bin_file_get_java_class(bf);
+	if (!jclass) {
+		return NULL;
+	}
+
+	RzList *list = rz_bin_java_class_methods_as_symbols(jclass);
+	if (!list) {
+		return NULL;
+	}
+
+	tmp = rz_bin_java_class_fields_as_symbols(jclass); 
+	if(!rz_list_join(list, tmp)) {
+		rz_list_free(tmp);
+	}
+
+	tmp = rz_bin_java_class_const_pool_as_symbols(jclass);
+	if(!rz_list_join(list, tmp)) {
+		rz_list_free(tmp);
+	}
+	return list;
+}
+
+static RzList *fields(RzBinFile *bf) {
+	RzBinJavaClass *jclass = rz_bin_file_get_java_class(bf);
+	if (!jclass) {
+		return NULL;
+	}
+
+	return rz_bin_java_class_fields_as_binfields(jclass);
+}
+
+static RzList *libs(RzBinFile *bf) {
+	RzBinJavaClass *jclass = rz_bin_file_get_java_class(bf);
+	if (!jclass) {
+		return NULL;
+	}
+
+	return rz_bin_java_class_as_libraries(jclass);
+}
+
+RzBinPlugin rz_bin_plugin_java = {
+	.name = "java",
+	.desc = "java bin plugin",
+	.license = "LGPL3",
+	//.init = init,
+	//.fini = fini,
+	.get_sdb = &get_sdb,
+	.load_buffer = &load_buffer,
+	.destroy = &destroy,
+	.check_buffer = &check_buffer,
+	.baddr = &baddr,
+	//.binsym = binsym,
+	//.entries = &entries,
+	.sections = sections,
+	.symbols = symbols,
+	.imports = &imports,
+	//.strings = &strings,
+	.info = &info,
+	.fields = fields,
+	.libs = libs,
+	//.lines = &lines,
+	.classes = classes,
+	//.demangle_type = retdemangle,
+	.minstrlen = 3,
+};
+
+/*
 #include "../asm/arch/java/code.h"
 #include "../format/java/class.h"
-
-#define IFDBG_BIN_JAVA if (0)
 
 static Sdb *DB = NULL;
 static void add_bin_obj_to_sdb(RzBinJavaObj *bin);
 static int add_sdb_bin_obj(const char *key, RzBinJavaObj *bin_obj);
 
 static int init(void *user) {
-	IFDBG_BIN_JAVA eprintf("Calling plugin init = %d.\n", DB ? 1 : 0);
 	if (!DB) {
-		IFDBG_BIN_JAVA eprintf("plugin DB beeing initted.\n");
 		DB = sdb_new("bin.java", NULL, 0);
-	} else {
-		IFDBG_BIN_JAVA eprintf("plugin DB already initted.\n");
 	}
 	return 0;
 }
 
 static int fini(void *user) {
-	IFDBG_BIN_JAVA eprintf("Calling plugin fini = %d.\n", DB ? 1 : 0);
-	if (!DB) {
-		IFDBG_BIN_JAVA eprintf("plugin DB already uninited.\n");
-	} else {
-		IFDBG_BIN_JAVA eprintf("plugin DB beeing uninited.\n");
+	if (DB) {
 		sdb_free(DB);
 		DB = NULL;
 	}
@@ -42,7 +225,6 @@ static int add_sdb_bin_obj(const char *key, RzBinJavaObj *bin_obj) {
 	char *addr, value[1024] = { 0 };
 	addr = sdb_itoa((ut64)(size_t)bin_obj, value, 16);
 	if (key && bin_obj && DB) {
-		IFDBG_BIN_JAVA eprintf("Adding %s:%s to the bin_objs db\n", key, addr);
 		sdb_set(DB, key, addr, 0);
 		result = true;
 	}
@@ -133,7 +315,7 @@ static RzBinInfo *info(RzBinFile *bf) {
 	ret->arch = strdup("java");
 	ret->bits = 32;
 	ret->big_endian = 0;
-	ret->dbg_info = 4 | 8; /* LineNums | Syms */
+	ret->dbg_info = 4 | 8; // LineNums | Syms
 	return ret;
 }
 
@@ -162,22 +344,6 @@ static RzBinAddr *binsym(RzBinFile *bf, int sym) {
 
 static RZ_BORROW RzList *lines(RzBinFile *bf) {
 	return NULL;
-#if 0
-	char *file = bf->file? strdup (bf->file): strdup ("");
-	RzList *list = rz_list_newf (free);
-	// XXX the owner of this list should be the plugin, so we are leaking here
-	file = rz_str_replace (file, ".class", ".java", 0);
-	/*
-	   int i;
-	   RzBinJavaObj *b = bf->o->bin_obj;
-	   for (i=0; i<b->lines.count; i++) {
-	        RzBinDwarfRow *row = RZ_NEW0(RzBinDwarfRow);
-	        rz_bin_dwarf_line_new (row, b->lines.addr[i], file, b->lines.line[i]);
-	        rz_list_append (list, row);
-	   }*/
-	free (file);
-	return list;
-#endif
 }
 
 static RzList *sections(RzBinFile *bf) {
@@ -221,6 +387,7 @@ RzBinPlugin rz_bin_plugin_java = {
 	.demangle_type = retdemangle,
 	.minstrlen = 3,
 };
+*/
 
 #ifndef RZ_PLUGIN_INCORE
 RZ_API RzLibStruct rizin_plugin = {

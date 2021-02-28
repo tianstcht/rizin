@@ -122,25 +122,25 @@ RZ_API int java_print_opcode(RzBinJavaObj *obj, ut64 addr, int idx, const ut8 *b
 		return update_bytes_consumed(JAVA_OPS[idx].size);
 
 	case 0x12: // ldc
-		arg = rz_bin_java_resolve_without_space(obj, (ut16)bytes[1]);
-		if (arg) {
-			snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
-			free(arg);
-		} else {
+		//arg = rz_bin_java_resolve_without_space(obj, (ut16)bytes[1]);
+		//if (arg) {
+		//	snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
+		//	free(arg);
+		//} else {
 			snprintf(output, outlen, "%s #%d", JAVA_OPS[idx].name, rz_read_at_be16(bytes, 1));
-		}
+		//}
 		output[outlen - 1] = 0;
 		return update_bytes_consumed(JAVA_OPS[idx].size);
 	case 0x13:
 	case 0x14:
-		val_one = rz_read_at_be16(bytes, 1);
-		arg = rz_bin_java_resolve_without_space(obj, val_one);
-		if (arg) {
-			snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
-			free(arg);
-		} else {
+		//val_one = rz_read_at_be16(bytes, 1);
+		//arg = rz_bin_java_resolve_without_space(obj, val_one);
+		//if (arg) {
+		//	snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
+		//	free(arg);
+		//} else {
 			snprintf(output, outlen, "%s #%u", JAVA_OPS[idx].name, val_one);
-		}
+		//}
 		output[outlen - 1] = 0;
 		return update_bytes_consumed(JAVA_OPS[idx].size);
 	case 0x84: // iinc
@@ -182,39 +182,39 @@ RZ_API int java_print_opcode(RzBinJavaObj *obj, ut64 addr, int idx, const ut8 *b
 	case 0xb8: // invokestatic
 	case 0xb9: // invokeinterface
 	case 0xba: // invokedynamic
-		arg = rz_bin_java_resolve_without_space(obj, (int)rz_read_at_be16(bytes, 1));
-		if (arg) {
-			snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
-			free(arg);
-		} else {
+		//arg = rz_bin_java_resolve_without_space(obj, (int)rz_read_at_be16(bytes, 1));
+		//if (arg) {
+		//	snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
+		//	free(arg);
+		//} else {
 			snprintf(output, outlen, "%s #%d", JAVA_OPS[idx].name, rz_read_at_be16(bytes, 1));
-		}
+		//}
 		output[outlen - 1] = 0;
 		return update_bytes_consumed(JAVA_OPS[idx].size);
 	case 0xbb: // new
 	case 0xbd: // anewarray
 	case 0xc0: // checkcast
 	case 0xc1: // instance of
-		arg = rz_bin_java_resolve_without_space(obj, (int)rz_read_at_be16(bytes, 1));
-		if (arg) {
-			snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
-			free(arg);
-		} else {
+		//arg = rz_bin_java_resolve_without_space(obj, (int)rz_read_at_be16(bytes, 1));
+		//if (arg) {
+		//	snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
+		//	free(arg);
+		//} else {
 			snprintf(output, outlen, "%s #%d", JAVA_OPS[idx].name, rz_read_at_be16(bytes, 1));
-		}
+		//}
 		output[outlen - 1] = 0;
 		return update_bytes_consumed(JAVA_OPS[idx].size);
 	case 0xb2: // getstatic
 	case 0xb3: // putstatic
 	case 0xb4: // getfield
 	case 0xb5: // putfield
-		arg = rz_bin_java_resolve_with_space(obj, (int)rz_read_at_be16(bytes, 1));
-		if (arg) {
-			snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
-			free(arg);
-		} else {
+		//arg = rz_bin_java_resolve_with_space(obj, (int)rz_read_at_be16(bytes, 1));
+		//if (arg) {
+		//	snprintf(output, outlen, "%s %s", JAVA_OPS[idx].name, arg);
+		//	free(arg);
+		//} else {
 			snprintf(output, outlen, "%s #%d", JAVA_OPS[idx].name, rz_read_at_be16(bytes, 1));
-		}
+		//}
 		output[outlen - 1] = 0;
 		return update_bytes_consumed(JAVA_OPS[idx].size);
 	}
